@@ -4,7 +4,13 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>OpenLayers Drifter Tracks</title>
+  <title>Drifting of FADs (2024) from Joaquín Salvador</title>
+  <meta name="description"
+    content="Several fish aggregating devices (FADs) were release at sea (NW Mediterranean) on spring 2024. This webiste shows the tracks of these drifters.">
+  <meta name="keywords" content="fish aggregating device, drifters, currents, ICM, CSIC">
+  <meta name="author" content="Gerard Llorach Tó (code), Joaquín Salvador (data)">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
   <script src="https://cdn.jsdelivr.net/npm/ol@v10.1.0/dist/ol.js"></script>
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/ol@v10.1.0/ol.css">
   <style>
@@ -46,6 +52,34 @@
       color: white;
       text-shadow: 0 0 4px black;
       font-family: cursive;
+    }
+
+    #buttons-container {
+      position: absolute;
+      padding: 20px;
+      display: flex;
+      flex-direction: column;
+      top: 50px;
+    }
+
+    .drifter-button {
+      margin: 2px;
+      user-select: none;
+      border-radius: 10px;
+      cursor: pointer;
+      display: flex;
+      justify-content: space-around;
+      align-items: center;
+      background: #217ccd;
+      color: white;
+      text-shadow: 0 0 4px black;
+      border: none;
+      box-shadow: 0 0 4px black;
+    }
+
+    .drifter-button:hover {
+      transform: scale(1.1);
+      transition: all 0.5 ease-in-out;
     }
   </style>
 </head>
@@ -7618,7 +7652,7 @@ M3i+665376;30/05/2024 09:24;39.5195;-0.3638;14.00;31.70
       }
       drifterTracks[id].push({
         coords: [parseFloat(entry.LONGITUD), parseFloat(entry.LATITUD)],
-        date: date
+        time: date
       });
       timestamps.push(date);
     });
@@ -7646,14 +7680,22 @@ M3i+665376;30/05/2024 09:24;39.5195;-0.3638;14.00;31.70
     });
 
 
-    const vectorSource = new ol.source.Vector();
-    const vectorLayer = new ol.layer.Vector({
-      source: vectorSource
-    });
-    map.addLayer(vectorLayer);
+    const vectorSources = {}; // To keep track of vector sources for each drifter
+    const vectorLayers = {};  // To keep track of vector layers for each drifter
 
+    Object.keys(drifterTracks).forEach(id => {
+      vectorSources[id] = new ol.source.Vector();
+      vectorLayers[id] = new ol.layer.Vector({
+        source: vectorSources[id]
+      });
+      map.addLayer(vectorLayers[id]);
+    });
+
+
+    // HTML elements
     const timeSlider = document.getElementById('time-slider');
     const timeDisplay = document.getElementById('time-display');
+    const buttonsContainer = document.getElementById('buttons-container');
 
     timeSlider.max = uniqueTimestamps.length - 1;
     timeSlider.oninput = function () {
@@ -7675,9 +7717,9 @@ M3i+665376;30/05/2024 09:24;39.5195;-0.3638;14.00;31.70
     const colors = generateRandomColors(25);
 
     function updateDrifterPositions(selectedTime) {
-      vectorSource.clear();
       Object.keys(drifterTracks).forEach((id, index) => {
-        const track = drifterTracks[id].filter(entry => entry.date <= selectedTime).map(entry => ol.proj.fromLonLat(entry.coords));
+        vectorSources[id].clear(); // Clear the source for each drifter
+        const track = drifterTracks[id].filter(entry => entry.time <= selectedTime).map(entry => ol.proj.fromLonLat(entry.coords));
         if (track.length > 0) {
           const trackFeature = new ol.Feature({
             geometry: new ol.geom.LineString(track)
@@ -7688,24 +7730,35 @@ M3i+665376;30/05/2024 09:24;39.5195;-0.3638;14.00;31.70
               width: 2
             })
           }));
-          vectorSource.addFeature(trackFeature);
+          vectorSources[id].addFeature(trackFeature);
         }
       });
     }
 
 
-    // // Create toggle buttons for each drifter
-    // Object.keys(drifterTracks).forEach(id => {
-    //   const button = document.createElement('button');
-    //   button.textContent = `Toggle Drifter ${id}`;
-    //   button.className = 'drifter-button';
-    //   button.onclick = function () {
-    //     vectorLayers[id].setVisible(!vectorLayers[id].getVisible());
-    //   };
-    //   buttonsContainer.appendChild(button);
-    // });
+    // Create toggle buttons for each drifter
+    Object.keys(drifterTracks).forEach((id, index) => {
+      const button = document.createElement('button');
+      button.textContent = `FAD ${index} ON/OFF`//`FAD ${id.substring(id.length-10, id.length-1)} ON/OFF`;
+      button.className = 'drifter-button';
+      // Create ball
+      let div = document.createElement('div');
+      div.style['border-radius'] = '20px';
+      div.style.width = '20px';
+      div.style.height = '20px';
+      div.style['box-shadow'] = '0 0 4px black';
+      div.style.background = colors[index % colors.length];
+      button.appendChild(div);
+      //button.style.background = colors[index % colors.length];
+      button.onclick = function () {
+        let isVisible = !vectorLayers[id].getVisible();
+        vectorLayers[id].setVisible(!vectorLayers[id].getVisible());
+        button.style.background = isVisible ? '#217ccd' : 'black';
+      };
+      buttonsContainer.appendChild(button);
+    });
 
-    
+
     // Initialize the slider display
     timeSlider.value = 0.01;
     let initIndex = Math.floor(uniqueTimestamps.length * 0.01);
