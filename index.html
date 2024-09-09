@@ -14,6 +14,9 @@
   <script src="openlayers/ol.js"></script>
   <link rel="stylesheet" href="openlayers/ol.css">
   <style>
+    * {
+      font-family: cursive;
+    }
     body {
       margin: 0;
       padding: 0;
@@ -51,7 +54,16 @@
     #time-display {
       color: white;
       text-shadow: 0 0 4px black;
-      font-family: cursive;
+    }
+
+    .info {
+      position: absolute;
+      bottom: 20px;
+      font-size: large;
+      color:white;
+      text-shadow: 0 0 4px black;
+      width: 100vw;
+      text-align: center;
     }
 
     #buttons-container {
@@ -92,6 +104,8 @@
     <input type="range" id="time-slider" min="0" max="0" step="1" value="0">
     <div id="time-display"></div>
   </div>
+  <!-- Info -->
+  <div class="info">Data from Joaquin Salvador (ICM-CSIC), Visualization made by Gerard Llorach (ICATMAR, ICM-CSIC)</div>
   <!-- Drifters on/off -->
   <div id="buttons-container"></div>
 
